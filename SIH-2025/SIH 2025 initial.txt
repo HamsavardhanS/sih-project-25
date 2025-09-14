@@ -1,0 +1,116 @@
+/*
+PM Internship Matching — Optimal Solution (Design + Prototype)
+Author: Hamsavardhan
+Date: 2025-09-03 
+
+--- DOCUMENT OUTLINE---
+1) Problem summary
+2) Optimal solution (high-level)
+3) System architecture
+4) Data model (DB tables / JSON)
+5) ML pipeline: suitability scoring & ranking
+6) Matching formulation: objective, constraints, solver choices
+7) Fairness & affirmative action handling
+8) Evaluation metrics & monitoring
+9) API design (sample endpoints)
+10) Frontend prototype (React single-file below) — a small demo UI
+11) Deployment & infra notes
+12) MVP milestone & roadmap
+13) Risks & mitigations
+
+--- KEY DESIGN DECISIONS (short) ---
+- Treat match as a constrained assignment optimization: maximize total suitability while respecting capacities, quotas (affirmative action), location constraints, and "no repeated participation" rules.
+- Use a learned scoring model (ranking model) to compute candidate <-> internship suitability. Combine ML score with business rules to produce final weight.
+- For the assignment solver, use Min-Cost Max-Flow or MILP (CP-SAT / Gurobi / OR-Tools): supports capacities and linear constraints. Use heuristic fallback (greedy / bipartite matching with capacities) for fast iterations.
+- Keep an auditable pipeline (every assignment has provenance: scores + constraints that triggered change).
+
+--- HIGH-LEVEL ARCHITECTURE ---
+[Frontend React] <-> [REST API / GraphQL] <-> [Match Engine Service] -> [Solver (OR-Tools / CP-SAT / MIP)]
+                                               \-> [ML Scoring Service (TF/Sklearn/LightGBM)]
+                                               \-> [Postgres / MySQL] (primary store)
+                                               \-> [Redis] (caching / capacity counters)
+
+Components:
+- Ingestion: Candidates (resumes, skills, preferences), Opportunities (job descriptions, locations, capacity), Historical participation.
+- Normalization & embedding service: parse text, extract skills, embed skill vectors.
+- Scoring service: compute features and run ranking model to produce a compatibility score.
+- Match Engine: builds optimization problem, applies quotas and constraints, solves, returns assignment set.
+- UI: Admin dashboard, Candidate dashboard, Industry dashboard, Reporting.
+
+--- DATA MODEL (examples) ---
+Candidates:
+{ id, name, email, location_district, category, skills: ["python","react"], education, gpa, preferences: {sectors:["agri"], locations:["Coimbatore"]}, past_internships: [opportunity_id...], disabled_flag }
+
+Opportunities:
+{ id, company, title, location_district, sectors:["agri"], required_skills:["python"], capacity:int, start_date, end_date, eligible_categories:[], remote_allowed:bool }
+
+Assignment log:
+{ assignment_id, candidate_id, opportunity_id, score_components: {ml_score, distance_score, quota_boost}, assigned_at, provenance }
+
+Quota config:
+{ opportunity_id, quota_rules: [{type:"rural", percent:10}, {type:"reserved_category_A", count:2}] }
+
+--- ML PIPELINE (scoring) ---
+1. Parse candidate text (resume, profile) -> skills, experience, education.
+2. Represent skills and JD using embeddings:
+   - Use a sentence transformer or domain-tuned model to generate embeddings for candidate profile and opportunity description.
+   - Also compute structured feature vector (years_experience, gpa, specific_skill_flags, commute_distance_km).
+3. Train a ranking model (pairwise or pointwise):
+   - Label data: historical acceptances, supervisor feedback, conversion rates (internship completed vs dropouts).
+   - Model examples: LightGBM (tabular + similarity features), or a small neural ranker combining embeddings + tabular.
+4. Output an ML suitability score in [0,1].
+5. Final weight = alpha*ml_score + beta*distance_score + gamma*quota_boost + rule_penalties (e.g., if previously participated -> lower priority).
+
+--- MATCHING FORMULATION ---
+Objective: maximize sum_{(c,o)} weight_{c,o} * x_{c,o}
+Subject to:
+- For each candidate c: sum_o x_{c,o} <= 1 (one internship each)
+- For each opportunity o: sum_c x_{c,o} <= capacity_o
+- Quota constraints: For subset S of candidates meeting quota type T: sum_{c in S} x_{c,o} >= quota_count_T(o) (or percentage)
+- Location/eligibility hard constraints: x_{c,o} = 0 if candidate not eligible (e.g., remote not allowed, skill missing)
+- No repeat: if candidate has participated in N recent rounds, disallow (or penalize strongly)
+- Optional objective terms for geographic diversity or minimizing total travel distance.
+
+Solver choices:
+- OR-Tools CP-SAT (scales well, supports linear constraints, free).
+- Min-Cost Max-Flow with node capacities (handles capacity easily) but quotas/complex constraints require transformations.
+- ILP with Gurobi/CBC for production if instance size small-to-medium.
+
+Fallback heuristic (fast):
+- Compute final weights, sort candidate-opportunity pairs by weight, iterate and assign greedily respecting capacities and quotas. Use iterative reweighting to ensure quotas.
+
+--- FAIRNESS & AFFIRMATIVE ACTION ---
+- Model quotas as hard constraints or soft constraints with penalty depending on legal/regulatory requirements.
+- Add "quota_boost" feature to ML weights to prefer candidates from targeted districts.
+- Audit log: record why each assignment happened (which constraints and score components), to allow human review.
+- Run counterfactual tests periodically to measure disparate impact across categories.
+
+--- EVALUATION METRICS ---
+- Placement quality: average ML score of assigned pairs.
+- Fill rate: fraction of internship slots filled.
+- Diversity metrics: percentage of assignments satisfying quota targets.
+- Dropout/completion rate post-assignment.
+- Human-in-the-loop acceptance rate (if admin reviews suggested matches).
+
+--- API DESIGN (sample endpoints) ---
+POST /api/candidates
+GET /api/opportunities
+POST /api/run-match (body: {round_id, solver:"or-tools"}) -> returns assignments
+GET /api/assignments?round_id=
+POST /api/adjust-quota
+GET /api/match-report?round_id=
+
+--- FRONTEND PROTOTYPE (this file contains a lightweight React prototype below) ---
+- The prototype demonstrates: upload small CSV, run a greedy match engine client-side, view assignments, tweak weights (alpha,beta,gamma).
+- Production: frontend calls backend run-match and displays results.
+
+--- DEPLOYMENT & INFRA ---
+- Backend: Spring Boot or Node.js/Express (you indicated Spring Boot familiarity) -> host on AWS/GCP/Azure.
+- Solver: run as separate microservice (containerized). Use Kubernetes for scaling if many concurrent rounds.
+- DB: Postgres for strong relational constraints, Redis for capacity counters and caching.
+- Observability: Prometheus + Grafana, ELK stack for logs.
+
+
+--- RISKS ---
+- Poor labeled data for ML ranking: mitigate with simple similarity heuristics first.
+- Complexity of quotas might make solver slow: mitigate with hybrid approach (hard quotas first, then optimize remainder).
