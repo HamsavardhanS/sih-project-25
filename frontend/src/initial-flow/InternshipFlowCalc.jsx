@@ -9,7 +9,7 @@ const students = [
 
 const internships = [
   { title: 'IT Internship', requiredSkills: ['Python','SQL'], location: 'CityA', education: 'Bachelor', capacity: 1, quotaRural: 1 },
-  { title: 'Marketing Internship', requiredSkills: ['React'], location: 'CityB', education: 'Bachelor', capacity: 1, quotaRural: 0 },
+  { title: 'Marketing Internship', requiredSkills: ['React'], location: 'CityB', education: 'Bachelor', capacity: 2, quotaRural: 0 },
 ];
 
 const calculateScore = (student, internship) => {
