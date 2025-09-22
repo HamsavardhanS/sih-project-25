@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Internship Scores by Internship</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #2c3e50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        a:hover {
+            background-color: #34495e;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Internship Scores by Internship</h1>
+
+    {% for intern_id, details in allocation.items() %}
+    <div class="card">
+        <h2>{{ details.title }}</h2>
+        <ul>
+            {% for s in details.students|sort(attribute="score", reverse=True) %}
+            <li>{{ s.name }} → Score: {{ s.score }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+
+    <a href="/scores">← Back to Scores</a>
+</body>
+
+</html>
