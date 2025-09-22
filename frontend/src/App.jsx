@@ -1,40 +1,11 @@
-// import logo from './logo.svg';
-// import './App.css';
-// import InternshipFlowFull from './initial-flow/InternshipFlowCalc';
-// import FeatureFlow from './initial-flow/FeatureFlow';
-// import img1 from './images/img1.jpg';
-// import img2 from './images/img2.jpg';
-// import img3 from './images/img3.jpg';
-// import img4 from './images/img4.jpg';
-// import img5 from './images/img5.jpg';
-// import ProcessFlow from './initial-flow/ProcessFlow';
-
-// function App() {
-//   const images = [
-//     img1,
-//     img2,
-//     img4,
-//     img5,
-//   ];
-
-//   const features = [
-//     { title: " Registration ", description: " Using Mobile Number " },
-//     { title: " Login ", description: " Using Mobile Number & Password " },
-//     { title: " OTP Verification ", description: " Entered Up via OTP alone " },
-//     { title: " Other Process ", description: " Lot of Verification Process " },
-//   ];
-
-//   return <ProcessFlow/>
-//   return <FeatureFlow images={images} features={features} />;
-// }
-
-// export default App;
+// src/App.jsx
 import React, { useState } from "react";
 import logo from './logo.svg';
 import './App.css';
 import InternshipFlowFull from './initial-flow/InternshipFlowCalc';
 import FeatureFlow from './initial-flow/FeatureFlow';
 import ProcessFlow from './initial-flow/ProcessFlow';
+import AllocationConflictDemo from "./initial-flow/AllocationConflictDemo";
 import img1 from './images/img1.jpg';
 import img2 from './images/img2.jpg';
 import img3 from './images/img3.jpg';
@@ -62,6 +33,8 @@ function App() {
         return <FeatureFlow images={images} features={features} />;
       case "internship":
         return <InternshipFlowFull />;
+      case "allocation":
+        return <AllocationConflictDemo />; // NEW PAGE
       default:
         return null;
     }
@@ -79,6 +52,7 @@ function App() {
           <Button color="inherit" onClick={() => setActiveTab("process")}>Process Flow</Button>
           <Button color="inherit" onClick={() => setActiveTab("feature")}>Feature Flow</Button>
           <Button color="inherit" onClick={() => setActiveTab("internship")}>Internship Flow</Button>
+          <Button color="inherit" onClick={() => setActiveTab("allocation")}>Allocation Demo</Button> {/* NEW TAB */}
         </Toolbar>
       </AppBar>
 
