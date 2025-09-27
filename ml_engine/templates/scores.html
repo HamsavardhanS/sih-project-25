@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Student Scores & Allocation Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        h2 {
+            color: #2c3e50;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .left,
+        .right {
+            width: 48%;
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .unassigned {
+            color: red;
+            font-weight: bold;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #2c3e50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        a:hover {
+            background-color: #34495e;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Student Scores & Allocation Results</h1>
+
+    <div class="container">
+        <!-- Left Side (Scores) -->
+        <div class="left">
+            <h2>Scores</h2>
+            {% for student, internships in scores.items() %}
+            <div class="card">
+                <strong>{{ student }}</strong><br>
+                {% for intern_title, score in internships.items() %}
+                {{ intern_title }} → Score: {{ score }} <br>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Right Side (Allocations + Unassigned) -->
+        <div class="right">
+            <h2>Allocations</h2>
+            {% for intern_id, details in allocation.items() %}
+            <div class="card">
+                <h3>{{ details.title }}</h3>
+                <ul>
+                    {% for s in details.students %}
+                    <li>{{ s.name }} (Score: {{ s.score }})</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+
+            {% if unassigned %}
+            <h2 class="unassigned">Unassigned Students</h2>
+            <ul>
+                {% for s in unassigned %}
+                <li>{{ s }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+
+    <a href="/allocations">View Internship-wise Scores →</a>
+</body>
+
+</html>
